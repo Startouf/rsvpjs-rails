@@ -3,7 +3,7 @@
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors
  * @license   Licensed under MIT license
  *            See https://raw.githubusercontent.com/tildeio/rsvp.js/master/LICENSE
- * @version   3.0.11
+ * @version   3.0.13
  */
 
 (function() {
@@ -254,11 +254,17 @@
 
     var $$utils$$isArray = $$utils$$_isArray;
     var $$utils$$now = Date.now || function() { return new Date().getTime(); };
+    function $$utils$$F() { }
 
-    var $$utils$$o_create = (Object.create || function(object) {
-      var o = function() { };
-      o.prototype = object;
-      return o;
+    var $$utils$$o_create = (Object.create || function (o) {
+      if (arguments.length > 1) {
+        throw new Error('Second argument not supported');
+      }
+      if (typeof o !== 'object') {
+        throw new TypeError('Argument must be an object');
+      }
+      $$utils$$F.prototype = o;
+      return new $$utils$$F();
     });
 
     var $$instrument$$queue = [];
@@ -1396,9 +1402,9 @@
     var $$rsvp$defer$$default = function defer(label) {
       var deferred = { };
 
-      deferred.promise = new $$rsvp$promise$$default(function(resolve, reject) {
-        deferred.resolve = resolve;
-        deferred.reject = reject;
+      deferred['promise'] = new $$rsvp$promise$$default(function(resolve, reject) {
+        deferred['resolve'] = resolve;
+        deferred['reject'] = reject;
       }, label);
 
       return deferred;
@@ -1474,7 +1480,8 @@
       }
     };
 
-    var $$rsvp$asap$$browserGlobal = (typeof window !== 'undefined') ? window : {};
+    var $$rsvp$asap$$browserWindow = (typeof window !== 'undefined') ? window : undefined;
+    var $$rsvp$asap$$browserGlobal = $$rsvp$asap$$browserWindow || {};
     var $$rsvp$asap$$BrowserMutationObserver = $$rsvp$asap$$browserGlobal.MutationObserver || $$rsvp$asap$$browserGlobal.WebKitMutationObserver;
 
     // test for web worker but not in IE10
@@ -1486,6 +1493,13 @@
     function $$rsvp$asap$$useNextTick() {
       return function() {
         process.nextTick($$rsvp$asap$$flush);
+      };
+    }
+
+    // vertx
+    function $$rsvp$asap$$useVertxTimer() {
+      return function() {
+        vertxNext($$rsvp$asap$$flush);
       };
     }
 
@@ -1531,6 +1545,16 @@
       $$rsvp$asap$$len = 0;
     }
 
+    function $$rsvp$asap$$attemptVertex() {
+      try {
+        var vertx = require('vertx');
+        var vertxNext = vertx.runOnLoop || vertx.runOnContext;
+        return $$rsvp$asap$$useVertxTimer();
+      } catch(e) {
+        return $$rsvp$asap$$useSetTimeout();
+      }
+    }
+
     var $$rsvp$asap$$scheduleFlush;
 
     // Decide what async method to use to triggering processing of queued callbacks:
@@ -1540,6 +1564,8 @@
       $$rsvp$asap$$scheduleFlush = $$rsvp$asap$$useMutationObserver();
     } else if ($$rsvp$asap$$isWorker) {
       $$rsvp$asap$$scheduleFlush = $$rsvp$asap$$useMessageChannel();
+    } else if ($$rsvp$asap$$browserWindow === undefined && typeof require === 'function') {
+      $$rsvp$asap$$scheduleFlush = $$rsvp$asap$$attemptVertex();
     } else {
       $$rsvp$asap$$scheduleFlush = $$rsvp$asap$$useSetTimeout();
     }
@@ -1594,10 +1620,10 @@
     };
 
     /* global define:true module:true window: true */
-    if (typeof define === 'function' && define.amd) {
+    if (typeof define === 'function' && define['amd']) {
       define(function() { return rsvp$umd$$RSVP; });
-    } else if (typeof module !== 'undefined' && module.exports) {
-      module.exports = rsvp$umd$$RSVP;
+    } else if (typeof module !== 'undefined' && module['exports']) {
+      module['exports'] = rsvp$umd$$RSVP;
     } else if (typeof this !== 'undefined') {
       this['RSVP'] = rsvp$umd$$RSVP;
     }

@@ -29,4 +29,4 @@ Coffeescript flavor:
 
 ## Versioning
 
-rsvpjs-rails 3.0.11 == RSVP.js 3.0.11
+rsvpjs-rails 3.0.13 == RSVP.js 3.0.13

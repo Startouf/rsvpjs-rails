@@ -1,5 +1,5 @@
 module Rsvpjs
   module Rails
-    VERSION = "3.0.11"
+    VERSION = "3.0.13"
   end
 end
